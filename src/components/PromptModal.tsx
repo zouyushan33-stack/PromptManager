@@ -5,7 +5,7 @@ import { Prompt } from '../types';
 interface PromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => void;
   editingPrompt: Prompt | null;
 }
 

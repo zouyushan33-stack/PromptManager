@@ -4,11 +4,12 @@ import { useState } from 'react';
 
 interface PromptCardProps {
   prompt: Prompt;
+  currentUserId?: string;
   onEdit: (prompt: Prompt) => void;
   onDelete: (id: string) => void;
 }
 
-export function PromptCard({ prompt, onEdit, onDelete }: PromptCardProps) {
+export function PromptCard({ prompt, currentUserId, onEdit, onDelete }: PromptCardProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -21,9 +22,11 @@ export function PromptCard({ prompt, onEdit, onDelete }: PromptCardProps) {
     }
   };
 
+  const isOwner = currentUserId === prompt.userId;
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full transition-shadow hover:shadow-md relative">
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex justify-between items-start mb-1">
         <h3 className="font-semibold text-lg text-slate-800 line-clamp-1" title={prompt.title}>
           {prompt.title}
         </h3>
@@ -35,25 +38,33 @@ export function PromptCard({ prompt, onEdit, onDelete }: PromptCardProps) {
           >
             <Copy size={16} />
           </button>
-          <button
-            onClick={() => onEdit(prompt)}
-            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors"
-            title="Edit Prompt"
-          >
-            <Edit2 size={16} />
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to delete this prompt?')) {
-                onDelete(prompt.id);
-              }
-            }}
-            className="p-2 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-md transition-colors"
-            title="Delete Prompt"
-          >
-            <Trash2 size={16} />
-          </button>
+          {isOwner && (
+            <>
+              <button
+                onClick={() => onEdit(prompt)}
+                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors"
+                title="Edit Prompt"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete this prompt?')) {
+                    onDelete(prompt.id);
+                  }
+                }}
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-md transition-colors"
+                title="Delete Prompt"
+              >
+                <Trash2 size={16} />
+              </button>
+            </>
+          )}
         </div>
+      </div>
+      
+      <div className="text-xs text-slate-500 mb-3">
+        By {prompt.authorName || 'Anonymous'}
       </div>
       
       <div className="flex flex-wrap gap-2 mb-4">

@@ -1,53 +1,118 @@
 import { useState, useEffect } from 'react';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, updateDoc, serverTimestamp, getDocFromServer } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebase-error';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { Prompt } from '../types';
-
-const STORAGE_KEY = 'prompt-manager-data';
 
 export function usePrompts() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Validate connection
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    async function testConnection() {
       try {
-        setPrompts(JSON.parse(stored));
-      } catch (e) {
-        console.error('Failed to parse prompts from local storage', e);
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+         if(error instanceof Error && error.message.includes('the client is offline')) {
+           console.error("Please check your Firebase configuration.");
+         }
       }
     }
+    testConnection();
   }, []);
 
-  const savePrompts = (newPrompts: Prompt[]) => {
-    setPrompts(newPrompts);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newPrompts));
+  // Listen to auth
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Listen to prompts collection
+  useEffect(() => {
+    const promptsRef = collection(db, 'prompts');
+    const unsubscribe = onSnapshot(promptsRef, (snapshot) => {
+      const dbPrompts = snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          ...data,
+          createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+          updatedAt: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now(),
+        };
+      }) as Prompt[];
+      
+      // Sort client-side by createdAt descending (newest first)
+      dbPrompts.sort((a, b) => b.createdAt - a.createdAt);
+      setPrompts(dbPrompts);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'prompts');
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  const addPrompt = async (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => {
+    if (!user) throw new Error("Must be logged in to create prompt");
+    const newDocRef = doc(collection(db, 'prompts')); // Auto ID
+    
+    try {
+      // We use integer timestamp for `createdAt` and `updatedAt` to match schema,
+      // but wait, Firestore security rules say `incoming().createdAt == request.time`.
+      // Using `serverTimestamp()` handles this on the backend.
+      // But we mapped it to `number` in our types. Let's send the numeric timestamp!
+      // But rules enforce `request.time` using serverTimestamp... wait!
+      // In JS, we can just send `Date.now()`, but firestore rule `request.time` represents the commit time.
+      // Ah. If rule says `incoming().createdAt == request.time`, client MUST use `serverTimestamp()`,
+      // but if we use `serverTimestamp()`, it saves as a Firestore Timestamp, NOT a number.
+      // Let's modify the document using `serverTimestamp()` and we'll ignore strict type locally.
+      
+      const payload = {
+        ...prompt,
+        userId: user.uid,
+        authorName: user.displayName || user.email || 'Anonymous',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      
+      await setDoc(newDocRef, payload);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `prompts/${newDocRef.id}`);
+    }
   };
 
-  const addPrompt = (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newPrompt: Prompt = {
-      ...prompt,
-      id: crypto.randomUUID(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    savePrompts([newPrompt, ...prompts]);
+  const updatePrompt = async (id: string, updatedFields: Partial<Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>>) => {
+    if (!user) throw new Error("Must be logged in to update prompt");
+    try {
+      const docRef = doc(db, 'prompts', id);
+      await updateDoc(docRef, {
+        ...updatedFields,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `prompts/${id}`);
+    }
   };
 
-  const updatePrompt = (id: string, updatedFields: Partial<Omit<Prompt, 'id' | 'createdAt' | 'updatedAt'>>) => {
-    savePrompts(
-      prompts.map((p) =>
-        p.id === id
-          ? { ...p, ...updatedFields, updatedAt: Date.now() }
-          : p
-      )
-    );
-  };
-
-  const deletePrompt = (id: string) => {
-    savePrompts(prompts.filter((p) => p.id !== id));
+  const deletePrompt = async (id: string) => {
+    if (!user) throw new Error("Must be logged in to delete prompt");
+    try {
+      const docRef = doc(db, 'prompts', id);
+      await deleteDoc(docRef);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `prompts/${id}`);
+    }
   };
 
   return {
     prompts,
+    user,
+    loading,
     addPrompt,
     updatePrompt,
     deletePrompt,

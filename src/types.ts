@@ -5,4 +5,6 @@ export interface Prompt {
   tags: string[];
   createdAt: number;
   updatedAt: number;
+  userId: string;
+  authorName?: string;
 }
