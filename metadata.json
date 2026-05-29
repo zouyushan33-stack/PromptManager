@@ -1,0 +1,6 @@
+{
+  "name": "Prompt Manager",
+  "description": "A web application to store, view, edit, and organize commonly used AI prompts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
