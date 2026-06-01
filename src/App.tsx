@@ -9,8 +9,7 @@ import { usePrompts } from './hooks/usePrompts';
 import { PromptCard } from './components/PromptCard';
 import { PromptModal } from './components/PromptModal';
 import { Prompt } from './types';
-import { auth } from './lib/firebase';
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { supabase } from './lib/supabase';
 
 export default function App() {
   const { prompts, user, loading, addPrompt, updatePrompt, deletePrompt } = usePrompts();
@@ -31,9 +30,11 @@ export default function App() {
   }, [prompts, searchQuery]);
 
   const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (error) throw error;
     } catch (error: any) {
       console.error('Login failed', error);
       alert(`Login failed: ${error.message}`);
@@ -42,7 +43,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error('Logout failed', error);
     }
@@ -90,7 +91,7 @@ export default function App() {
               {user ? (
                 <>
                   <div className="text-sm font-medium text-slate-600 hidden sm:block">
-                    {user.displayName || user.email}
+                    {user.user_metadata?.full_name || user.email}
                   </div>
                   <button
                     onClick={handleLogout}
@@ -156,7 +157,7 @@ export default function App() {
                   <div key={prompt.id} className="relative group">
                     <PromptCard
                       prompt={prompt}
-                      currentUserId={user?.uid}
+                      currentUserId={user?.id}
                       isAdmin={isAdmin}
                       onEdit={handleEdit}
                       onDelete={deletePrompt}

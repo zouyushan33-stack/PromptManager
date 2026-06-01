@@ -1,111 +1,122 @@
 import { useState, useEffect } from 'react';
-import { collection, doc, onSnapshot, setDoc, deleteDoc, updateDoc, serverTimestamp, getDocFromServer } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
-import { handleFirestoreError, OperationType } from '../lib/firebase-error';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { supabase } from '../lib/supabase';
 import { Prompt } from '../types';
+import { User } from '@supabase/supabase-js';
 
 export function usePrompts() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Validate connection
-  useEffect(() => {
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error) {
-         if(error instanceof Error && error.message.includes('the client is offline')) {
-           console.error("Please check your Firebase configuration.");
-         }
-      }
-    }
-    testConnection();
-  }, []);
-
   // Listen to auth
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
     });
-    return unsubscribe;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Listen to prompts collection
+  // Fetch prompts
   useEffect(() => {
-    const promptsRef = collection(db, 'prompts');
-    const unsubscribe = onSnapshot(promptsRef, (snapshot) => {
-      const dbPrompts = snapshot.docs.map(docSnap => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          ...data,
-          createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
-          updatedAt: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now(),
-        };
-      }) as Prompt[];
-      
-      // Sort client-side by createdAt descending (newest first)
-      dbPrompts.sort((a, b) => b.createdAt - a.createdAt);
-      setPrompts(dbPrompts);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'prompts');
-      setLoading(false);
-    });
-    return unsubscribe;
+    fetchPrompts();
+    
+    // Subscribe to changes
+    const channel = supabase
+      .channel('public:prompts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'prompts' }, payload => {
+        fetchPrompts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const fetchPrompts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*')
+        .order('createdAt', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching prompts:', error);
+        return;
+      }
+      
+      const formattedData = (data || []).map(item => ({
+        ...item,
+        createdAt: new Date(item.createdAt).getTime(),
+        updatedAt: new Date(item.updatedAt).getTime()
+      }));
+
+      setPrompts(formattedData as Prompt[]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const addPrompt = async (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => {
     if (!user) throw new Error("Must be logged in to create prompt");
-    const newDocRef = doc(collection(db, 'prompts')); // Auto ID
     
     try {
-      // We use integer timestamp for `createdAt` and `updatedAt` to match schema,
-      // but wait, Firestore security rules say `incoming().createdAt == request.time`.
-      // Using `serverTimestamp()` handles this on the backend.
-      // But we mapped it to `number` in our types. Let's send the numeric timestamp!
-      // But rules enforce `request.time` using serverTimestamp... wait!
-      // In JS, we can just send `Date.now()`, but firestore rule `request.time` represents the commit time.
-      // Ah. If rule says `incoming().createdAt == request.time`, client MUST use `serverTimestamp()`,
-      // but if we use `serverTimestamp()`, it saves as a Firestore Timestamp, NOT a number.
-      // Let's modify the document using `serverTimestamp()` and we'll ignore strict type locally.
-      
       const payload = {
         ...prompt,
-        userId: user.uid,
-        authorName: user.displayName || user.email || 'Anonymous',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        userId: user.id,
+        authorName: user.email?.split('@')[0] || 'Anonymous',
       };
       
-      await setDoc(newDocRef, payload);
-    } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, `prompts/${newDocRef.id}`);
+      const { error } = await supabase
+        .from('prompts')
+        .insert([payload]);
+        
+      if (error) throw error;
+    } catch (e: any) {
+       console.error("Error creating prompt:", e.message);
+       alert("Failed to create prompt: " + e.message);
     }
   };
 
   const updatePrompt = async (id: string, updatedFields: Partial<Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>>) => {
     if (!user) throw new Error("Must be logged in to update prompt");
     try {
-      const docRef = doc(db, 'prompts', id);
-      await updateDoc(docRef, {
-        ...updatedFields,
-        updatedAt: serverTimestamp(),
-      });
-    } catch (e) {
-      handleFirestoreError(e, OperationType.UPDATE, `prompts/${id}`);
+      const { error } = await supabase
+        .from('prompts')
+        .update({
+          ...updatedFields,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', id);
+        
+      if (error) throw error;
+    } catch (e: any) {
+      console.error("Error updating prompt:", e.message);
+      alert("Failed to update prompt: " + e.message);
     }
   };
 
   const deletePrompt = async (id: string) => {
     if (!user) throw new Error("Must be logged in to delete prompt");
     try {
-      const docRef = doc(db, 'prompts', id);
-      await deleteDoc(docRef);
-    } catch (e) {
-      handleFirestoreError(e, OperationType.DELETE, `prompts/${id}`);
+      const { error } = await supabase
+        .from('prompts')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+    } catch (e: any) {
+      console.error("Error deleting prompt:", e.message);
+      alert("Failed to delete prompt: " + e.message);
     }
   };
 
