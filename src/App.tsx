@@ -9,12 +9,14 @@ import { usePrompts } from './hooks/usePrompts';
 import { PromptCard } from './components/PromptCard';
 import { PromptModal } from './components/PromptModal';
 import { Prompt } from './types';
+import { LoginModal } from './components/LoginModal';
 import { supabase } from './lib/supabase';
 
 export default function App() {
   const { prompts, user, loading, addPrompt, updatePrompt, deletePrompt } = usePrompts();
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
 
   const filteredPrompts = useMemo(() => {
@@ -29,16 +31,8 @@ export default function App() {
     );
   }, [prompts, searchQuery]);
 
-  const handleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Login failed', error);
-      alert(`Login failed: ${error.message}`);
-    }
+  const handleLogin = () => {
+    setIsLoginModalOpen(true);
   };
 
   const handleLogout = async () => {
@@ -91,7 +85,7 @@ export default function App() {
               {user ? (
                 <>
                   <div className="text-sm font-medium text-slate-600 hidden sm:block">
-                    {user.user_metadata?.full_name || user.email}
+                    {user.user_metadata?.full_name || localStorage.getItem('user_nickname') || user.email || 'Anonymous'}
                   </div>
                   <button
                     onClick={handleLogout}
@@ -204,6 +198,10 @@ export default function App() {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
         editingPrompt={editingPrompt}
+      />
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </div>
   );

@@ -73,7 +73,7 @@ export function usePrompts() {
       const payload = {
         ...prompt,
         userId: user.id,
-        authorName: user.email?.split('@')[0] || 'Anonymous',
+        authorName: user.user_metadata?.full_name || localStorage.getItem('user_nickname') || 'Anonymous',
       };
       
       const { error } = await supabase
