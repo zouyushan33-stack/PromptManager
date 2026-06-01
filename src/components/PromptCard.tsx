@@ -5,11 +5,12 @@ import { useState } from 'react';
 interface PromptCardProps {
   prompt: Prompt;
   currentUserId?: string;
+  isAdmin?: boolean;
   onEdit: (prompt: Prompt) => void;
   onDelete: (id: string) => void;
 }
 
-export function PromptCard({ prompt, currentUserId, onEdit, onDelete }: PromptCardProps) {
+export function PromptCard({ prompt, currentUserId, isAdmin, onEdit, onDelete }: PromptCardProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -23,6 +24,7 @@ export function PromptCard({ prompt, currentUserId, onEdit, onDelete }: PromptCa
   };
 
   const isOwner = currentUserId === prompt.userId;
+  const canEditOrDelete = isOwner || isAdmin;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full transition-shadow hover:shadow-md relative">
@@ -38,7 +40,7 @@ export function PromptCard({ prompt, currentUserId, onEdit, onDelete }: PromptCa
           >
             <Copy size={16} />
           </button>
-          {isOwner && (
+          {canEditOrDelete && (
             <>
               <button
                 onClick={() => onEdit(prompt)}
@@ -63,9 +65,15 @@ export function PromptCard({ prompt, currentUserId, onEdit, onDelete }: PromptCa
         </div>
       </div>
       
-      <div className="text-xs text-slate-500 mb-3">
+      <div className="text-xs text-slate-500 mb-2">
         By {prompt.authorName || 'Anonymous'}
       </div>
+
+      {prompt.description && (
+        <div className="text-sm text-slate-600 mb-3 line-clamp-2">
+          {prompt.description}
+        </div>
+      )}
       
       <div className="flex flex-wrap gap-2 mb-4">
         {prompt.tags.map((tag) => (

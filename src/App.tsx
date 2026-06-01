@@ -25,6 +25,7 @@ export default function App() {
       (p) =>
         p.title.toLowerCase().includes(query) ||
         p.content.toLowerCase().includes(query) ||
+        (p.description && p.description.toLowerCase().includes(query)) ||
         p.tags.some((t) => t.toLowerCase().includes(query))
     );
   }, [prompts, searchQuery]);
@@ -68,6 +69,8 @@ export default function App() {
       addPrompt(promptData);
     }
   };
+
+  const isAdmin = user?.email === 'zouyushan33@gmail.com';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -154,6 +157,7 @@ export default function App() {
                     <PromptCard
                       prompt={prompt}
                       currentUserId={user?.uid}
+                      isAdmin={isAdmin}
                       onEdit={handleEdit}
                       onDelete={deletePrompt}
                     />

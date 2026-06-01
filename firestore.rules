@@ -5,6 +5,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'zouyushan33@gmail.com';
+    }
+
     function isSignedIn() {
       return request.auth != null && request.auth.uid != null;
     }
@@ -23,10 +27,11 @@ service cloud.firestore {
 
     function isPromptValid(data) {
       return data.keys().hasAll(['title', 'content', 'tags', 'createdAt', 'updatedAt', 'userId']) &&
-             data.keys().size() <= 7 && // userId, title, content, tags, createdAt, updatedAt, optional authorName
+             data.keys().size() <= 8 && // userId, title, description, content, tags, createdAt, updatedAt, optional authorName
              data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.get('description', '') is string && data.get('description', '').size() <= 1000 &&
              data.content is string && data.content.size() > 0 && data.content.size() <= 10000 &&
-             data.userId == request.auth.uid &&
+             (data.userId == request.auth.uid || isAdmin()) &&
              data.tags is list && data.tags.size() <= 20 &&
              (data.tags.size() == 0 || (data.tags[0] is string)) &&
              (data.get('authorName', '') is string);
@@ -44,7 +49,7 @@ service cloud.firestore {
       
       allow update: if isSignedIn() &&
                        isValidId(promptId) &&
-                       existing().userId == request.auth.uid &&
+                       (existing().userId == request.auth.uid || isAdmin()) &&
                        isPromptValid(incoming()) &&
                        incoming().createdAt == existing().createdAt &&
                        incoming().userId == existing().userId &&
@@ -52,7 +57,7 @@ service cloud.firestore {
                        
       allow delete: if isSignedIn() &&
                        isValidId(promptId) &&
-                       existing().userId == request.auth.uid;
+                       (existing().userId == request.auth.uid || isAdmin());
     }
   }
 }

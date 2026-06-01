@@ -11,16 +11,19 @@ interface PromptModalProps {
 
 export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptModalProps) {
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [tagsStr, setTagsStr] = useState('');
 
   useEffect(() => {
     if (editingPrompt) {
       setTitle(editingPrompt.title);
+      setDescription(editingPrompt.description || '');
       setContent(editingPrompt.content);
       setTagsStr(editingPrompt.tags.join(', '));
     } else {
       setTitle('');
+      setDescription('');
       setContent('');
       setTagsStr('');
     }
@@ -39,6 +42,7 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
 
     onSave({
       title: title.trim(),
+      description: description.trim(),
       content: content.trim(),
       tags,
     });
@@ -75,6 +79,20 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
                 placeholder="e.g., Code Review Assistant"
                 className="w-full px-4 py-2 text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
+                Description (Optional)
+              </label>
+              <input
+                id="description"
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g., Use this prompt for code review tasks"
+                className="w-full px-4 py-2 text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
             </div>
             
