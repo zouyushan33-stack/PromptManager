@@ -5,7 +5,7 @@ import { Prompt } from '../types';
 interface PromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => void;
+  onSave: (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => Promise<boolean | void>;
   editingPrompt: Prompt | null;
 }
 
@@ -14,6 +14,8 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [tagsStr, setTagsStr] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (editingPrompt) {
@@ -27,27 +29,42 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
       setContent('');
       setTagsStr('');
     }
+    setError(null);
+    setSaving(false);
   }, [editingPrompt, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim() || !content.trim() || saving) return;
 
     const tags = tagsStr
       .split(',')
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
-    onSave({
-      title: title.trim(),
-      description: description.trim(),
-      content: content.trim(),
-      tags,
-    });
-    
-    onClose();
+    setSaving(true);
+    setError(null);
+
+    try {
+      const saved = await onSave({
+        title: title.trim(),
+        description: description.trim(),
+        content: content.trim(),
+        tags,
+      });
+
+      if (saved !== false) {
+        onClose();
+      } else {
+        setError('Unable to save this prompt. Please check the message above and try again.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Unable to save this prompt. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -65,8 +82,14 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-grow">
+        <form id="prompt-form" onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-grow">
           <div className="space-y-5">
+            {error && (
+              <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-slate-700 mb-1">
                 Title
@@ -136,11 +159,12 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
             Cancel
           </button>
           <button
-            onClick={handleSubmit}
-            disabled={!title.trim() || !content.trim()}
+            type="submit"
+            form="prompt-form"
+            disabled={saving || !title.trim() || !content.trim()}
             className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            Save Prompt
+            {saving ? 'Saving...' : 'Save Prompt'}
           </button>
         </div>
       </div>

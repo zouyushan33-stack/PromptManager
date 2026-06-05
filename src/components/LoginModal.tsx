@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -22,22 +22,18 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setError(null);
 
     try {
-      // Create anonymous session
-      const { data, error: signInError } = await supabase.auth.signInAnonymously();
+      const { error: signInError } = await supabase.auth.signInAnonymously();
       if (signInError) throw signInError;
 
-      // Update the user metadata with their nickname
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { full_name: name.trim(), email: name.trim() } // Setting 'email' here is just a fallback for where we show email
+        data: { full_name: name.trim() },
       });
       if (updateError) throw updateError;
-      
-      // Save name to localStorage as requested too just in case
-      localStorage.setItem('user_nickname', name.trim());
 
+      localStorage.setItem('user_nickname', name.trim());
       onClose();
     } catch (err: any) {
-      setError(err.message);
+      setError(err?.message || 'Unable to log in. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -55,12 +51,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </button>
         </div>
         <div className="p-6">
-          <p className="text-sm text-slate-600 mb-6">请设置你的姓名或花名，方便团队成员知道 Prompt 是谁提交的。</p>
-          
+          <p className="text-sm text-slate-600 mb-6">
+            请设置你的姓名或花名，方便团队成员知道 Prompt 是谁提交的。
+          </p>
+
           {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
-             <div>
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">姓名 / 花名</label>
               <input
                 type="text"

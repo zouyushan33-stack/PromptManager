@@ -57,11 +57,11 @@ export default function App() {
     setIsModalOpen(true);
   };
 
-  const handleSave = (promptData: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => {
+  const handleSave = async (promptData: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => {
     if (editingPrompt) {
-      updatePrompt(editingPrompt.id, promptData);
+      return updatePrompt(editingPrompt.id, promptData);
     } else {
-      addPrompt(promptData);
+      return addPrompt(promptData);
     }
   };
 

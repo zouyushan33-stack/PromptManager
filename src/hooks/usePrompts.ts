@@ -3,6 +3,30 @@ import { supabase } from '../lib/supabase';
 import { Prompt } from '../types';
 import { User } from '@supabase/supabase-js';
 
+type PromptRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  content: string;
+  tags: string[] | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  author_name?: string | null;
+};
+
+const formatPrompt = (item: PromptRow): Prompt => ({
+  id: item.id,
+  title: item.title,
+  description: item.description || '',
+  content: item.content,
+  tags: item.tags || [],
+  createdAt: new Date(item.created_at).getTime(),
+  updatedAt: new Date(item.updated_at).getTime(),
+  userId: item.user_id,
+  authorName: item.author_name || 'Anonymous',
+});
+
 export function usePrompts() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [user, setUser] = useState<User | null>(null);
@@ -45,20 +69,16 @@ export function usePrompts() {
       const { data, error } = await supabase
         .from('prompts')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching prompts:', error);
         return;
       }
       
-      const formattedData = (data || []).map(item => ({
-        ...item,
-        createdAt: new Date(item.createdAt).getTime(),
-        updatedAt: new Date(item.updatedAt).getTime()
-      }));
+      const formattedData = (data || []).map((item) => formatPrompt(item as PromptRow));
 
-      setPrompts(formattedData as Prompt[]);
+      setPrompts(formattedData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -67,13 +87,21 @@ export function usePrompts() {
   };
 
   const addPrompt = async (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => {
-    if (!user) throw new Error("Must be logged in to create prompt");
+    if (!user) {
+      throw new Error('You must be logged in to create a prompt.');
+    }
     
     try {
+      const now = new Date().toISOString();
       const payload = {
-        ...prompt,
-        userId: user.id,
-        authorName: user.user_metadata?.full_name || localStorage.getItem('user_nickname') || 'Anonymous',
+        title: prompt.title,
+        description: prompt.description,
+        content: prompt.content,
+        tags: prompt.tags,
+        created_at: now,
+        updated_at: now,
+        user_id: user.id,
+        author_name: user.user_metadata?.full_name || localStorage.getItem('user_nickname') || 'Anonymous',
       };
       
       const { error } = await supabase
@@ -81,27 +109,36 @@ export function usePrompts() {
         .insert([payload]);
         
       if (error) throw error;
+      await fetchPrompts();
+      return true;
     } catch (e: any) {
        console.error("Error creating prompt:", e.message);
-       alert("Failed to create prompt: " + e.message);
+       throw new Error(e?.message || 'Failed to create prompt.');
     }
   };
 
   const updatePrompt = async (id: string, updatedFields: Partial<Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>>) => {
-    if (!user) throw new Error("Must be logged in to update prompt");
+    if (!user) {
+      throw new Error('You must be logged in to update a prompt.');
+    }
     try {
       const { error } = await supabase
         .from('prompts')
         .update({
-          ...updatedFields,
-          updatedAt: new Date().toISOString()
+          title: updatedFields.title,
+          description: updatedFields.description,
+          content: updatedFields.content,
+          tags: updatedFields.tags,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', id);
         
       if (error) throw error;
+      await fetchPrompts();
+      return true;
     } catch (e: any) {
       console.error("Error updating prompt:", e.message);
-      alert("Failed to update prompt: " + e.message);
+      throw new Error(e?.message || 'Failed to update prompt.');
     }
   };
 
