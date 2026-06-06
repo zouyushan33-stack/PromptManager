@@ -4,13 +4,12 @@ import { useState } from 'react';
 
 interface PromptCardProps {
   prompt: Prompt;
-  currentUserId?: string;
-  isAdmin?: boolean;
+  canManage: boolean;
   onEdit: (prompt: Prompt) => void;
   onDelete: (id: string) => void;
 }
 
-export function PromptCard({ prompt, currentUserId, isAdmin, onEdit, onDelete }: PromptCardProps) {
+export function PromptCard({ prompt, canManage, onEdit, onDelete }: PromptCardProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -22,9 +21,6 @@ export function PromptCard({ prompt, currentUserId, isAdmin, onEdit, onDelete }:
       console.error('Failed to copy text', err);
     }
   };
-
-  const isOwner = currentUserId === prompt.userId;
-  const canEditOrDelete = isOwner || isAdmin;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full transition-shadow hover:shadow-md relative">
@@ -40,7 +36,7 @@ export function PromptCard({ prompt, currentUserId, isAdmin, onEdit, onDelete }:
           >
             <Copy size={16} />
           </button>
-          {canEditOrDelete && (
+          {canManage && (
             <>
               <button
                 onClick={() => onEdit(prompt)}

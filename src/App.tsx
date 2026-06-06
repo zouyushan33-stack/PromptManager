@@ -4,19 +4,31 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Plus, Search, MessageSquareQuote, LogIn, LogOut } from 'lucide-react';
+import { Plus, Search, MessageSquareQuote, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import { usePrompts } from './hooks/usePrompts';
 import { PromptCard } from './components/PromptCard';
 import { PromptModal } from './components/PromptModal';
 import { Prompt } from './types';
 import { LoginModal } from './components/LoginModal';
+import { AdminManagerModal } from './components/AdminManagerModal';
 import { supabase } from './lib/supabase';
 
 export default function App() {
-  const { prompts, user, loading, addPrompt, updatePrompt, deletePrompt } = usePrompts();
+  const {
+    prompts,
+    user,
+    profile,
+    isOwner,
+    loading,
+    canManagePrompt,
+    addPrompt,
+    updatePrompt,
+    deletePrompt,
+  } = usePrompts();
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
 
   const filteredPrompts = useMemo(() => {
@@ -45,7 +57,8 @@ export default function App() {
 
   const handleAddNew = () => {
     if (!user) {
-      alert('Please log in to create shared prompts.');
+      alert('请先登录后再上传 prompt。');
+      setIsLoginModalOpen(true);
       return;
     }
     setEditingPrompt(null);
@@ -65,8 +78,6 @@ export default function App() {
     }
   };
 
-  const isAdmin = user?.email === 'zouyushan33@gmail.com';
-
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -85,8 +96,18 @@ export default function App() {
               {user ? (
                 <>
                   <div className="text-sm font-medium text-slate-600 hidden sm:block">
-                    {user.user_metadata?.full_name || localStorage.getItem('user_nickname') || user.email || 'Anonymous'}
+                    {profile?.displayName || user.email || 'User'}
                   </div>
+                  {isOwner && (
+                    <button
+                      onClick={() => setIsAdminModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg font-medium text-sm transition-colors"
+                      title="管理人管理"
+                    >
+                      <ShieldCheck size={16} />
+                      <span className="hidden sm:inline">管理人</span>
+                    </button>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
@@ -151,8 +172,7 @@ export default function App() {
                   <div key={prompt.id} className="relative group">
                     <PromptCard
                       prompt={prompt}
-                      currentUserId={user?.id}
-                      isAdmin={isAdmin}
+                      canManage={canManagePrompt(prompt)}
                       onEdit={handleEdit}
                       onDelete={deletePrompt}
                     />
@@ -202,6 +222,10 @@ export default function App() {
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
+      />
+      <AdminManagerModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
       />
     </div>
   );

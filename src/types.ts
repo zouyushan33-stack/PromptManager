@@ -9,3 +9,14 @@ export interface Prompt {
   userId: string;
   authorName?: string;
 }
+
+export type UserRole = 'user' | 'admin' | 'owner';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  createdAt: number;
+  updatedAt: number;
+}

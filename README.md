@@ -1,20 +1,63 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# PromptManager
 
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/bfe4412c-51d0-47bc-87dc-2e3d71b9e57b
+A shared prompt manager built with React, Vite, and Supabase.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+
+   ```powershell
+   npm install
+   ```
+
+2. Create `.env.local` with your Supabase frontend credentials:
+
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+
+   Then fill in:
+
+   ```text
+   VITE_SUPABASE_URL
+   VITE_SUPABASE_ANON_KEY
+   ```
+
+3. Start the local development server:
+
+   ```powershell
+   npm run dev
+   ```
+
+4. Open:
+
+   ```text
+   http://localhost:3000
+   ```
+
+## Check Before Deploy
+
+Run the complete local check before committing:
+
+```powershell
+npm run check
+```
+
+This runs TypeScript validation and a production build.
+
+## Debug And Deploy Workflow
+
+Use [DEBUG_WORKFLOW.md](./DEBUG_WORKFLOW.md) for the standard local-debug, GitHub, Netlify, and Supabase workflow.
+
+## Netlify Environment Variables
+
+Configure these in Netlify before deploying:
+
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+```
+
+Do not add a Supabase `service_role` key to frontend code or Netlify frontend builds.

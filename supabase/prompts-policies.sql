@@ -1,5 +1,6 @@
 -- PromptManager policies for public browsing and authenticated writes.
 -- Supabase anonymous sign-ins use the authenticated role after login.
+-- For email login, roles, admins, and owner permissions, run auth-roles-policies.sql instead.
 
 grant usage on schema public to anon, authenticated;
 grant select on table public.prompts to anon, authenticated;
