@@ -1,6 +1,6 @@
 # PromptManager Debug Workflow
 
-Use this workflow for every new feature or bug fix. It keeps feedback fast locally and only uses GitHub/Netlify after the change is already checked.
+Use this workflow for every new feature or bug fix. It keeps feedback fast locally and only uses GitHub plus the active static host after the change is already checked.
 
 ## Daily Loop
 
@@ -39,12 +39,12 @@ Use this workflow for every new feature or bug fix. It keeps feedback fast local
    git push origin main
    ```
 
-7. Let Netlify deploy from GitHub, then spot-check the production site.
+7. Let the active host deploy from GitHub, then spot-check the production site.
 
 ## Roles
 
 - Codex updates code, runs checks, summarizes changed files, and can commit/push when explicitly asked.
-- You verify the local page first, then production after Netlify deploys.
+- You verify the local page first, then production after the active host deploys.
 - Supabase admin changes are kept in `supabase/*.sql` files and run manually in the Supabase SQL Editor.
 
 ## Supabase Changes
@@ -66,4 +66,8 @@ git checkout -b feature/short-name
 git push origin feature/short-name
 ```
 
-Netlify can then provide a preview deploy for that branch or pull request.
+The active host can then provide a preview deploy for that branch or pull request, if preview deployments are enabled.
+
+## Hosting
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the current Tencent CloudBase deployment workflow, required GitHub Secrets, Supabase Auth URL checklist, and hosting troubleshooting notes.

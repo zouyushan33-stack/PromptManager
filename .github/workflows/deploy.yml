@@ -1,0 +1,62 @@
+name: Deploy to Tencent CloudBase
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build and deploy static site
+    runs-on: ubuntu-latest
+
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      TCB_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
+      TCB_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
+      TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Check required secrets
+        shell: bash
+        run: |
+          missing=0
+          for name in TCB_SECRET_ID TCB_SECRET_KEY TCB_ENV_ID VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::GitHub Secret $name is required but empty."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install dependencies
+        run: npm install --include=optional
+
+      - name: Ensure Tailwind Linux native binding
+        shell: bash
+        run: |
+          OXIDE_VERSION="$(node -p "require('./node_modules/@tailwindcss/oxide/package.json').version")"
+          npm install --no-save --include=optional "@tailwindcss/oxide-linux-x64-gnu@$OXIDE_VERSION"
+          node -e "require.resolve('@tailwindcss/oxide-linux-x64-gnu'); console.log('Tailwind Linux native binding is available.')"
+
+      - name: Build
+        run: npm run build
+
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
+      - name: Log in to CloudBase
+        run: tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
+
+      - name: Deploy to CloudBase Hosting
+        run: tcb hosting deploy ./dist / -e "$TCB_ENV_ID"
