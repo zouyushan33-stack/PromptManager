@@ -1,15 +1,31 @@
-import { Copy, Edit2, Trash2 } from 'lucide-react';
+import { Copy, Edit2, GripVertical, Trash2 } from 'lucide-react';
 import { Prompt } from '../types';
-import { useState } from 'react';
+import { type Key, useState } from 'react';
 
 interface PromptCardProps {
+  key?: Key;
   prompt: Prompt;
   canManage: boolean;
+  canDrag?: boolean;
+  isDragging?: boolean;
   onEdit: (prompt: Prompt) => void;
   onDelete: (id: string) => void;
+  onDragStart?: (id: string) => void;
+  onDragEnd?: () => void;
+  onDropBefore?: (id: string) => void;
 }
 
-export function PromptCard({ prompt, canManage, onEdit, onDelete }: PromptCardProps) {
+export function PromptCard({
+  prompt,
+  canManage,
+  canDrag = false,
+  isDragging = false,
+  onEdit,
+  onDelete,
+  onDragStart,
+  onDragEnd,
+  onDropBefore,
+}: PromptCardProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -23,11 +39,34 @@ export function PromptCard({ prompt, canManage, onEdit, onDelete }: PromptCardPr
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col h-full transition-shadow hover:shadow-md relative">
+    <div
+      draggable={canDrag}
+      onDragStart={(event) => {
+        if (!canDrag) return;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', prompt.id);
+        onDragStart?.(prompt.id);
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(event) => {
+        if (canDrag) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        if (!canDrag) return;
+        event.preventDefault();
+        onDropBefore?.(prompt.id);
+      }}
+      className={`bg-white rounded-xl shadow-sm border p-5 flex flex-col h-full transition-all relative ${
+        isDragging ? 'opacity-50 border-indigo-300 shadow-md' : 'border-slate-200 hover:shadow-md'
+      } ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
+    >
       <div className="flex justify-between items-start mb-1">
-        <h3 className="font-semibold text-lg text-slate-800 line-clamp-1" title={prompt.title}>
-          {prompt.title}
-        </h3>
+        <div className="flex items-start gap-2 min-w-0">
+          {canDrag && <GripVertical size={18} className="text-slate-300 mt-1 shrink-0" />}
+          <h3 className="font-semibold text-lg text-slate-800 line-clamp-1" title={prompt.title}>
+            {prompt.title}
+          </h3>
+        </div>
         <div className="flex gap-1 -mt-1 -mr-2">
           <button
             onClick={handleCopy}
@@ -62,7 +101,7 @@ export function PromptCard({ prompt, canManage, onEdit, onDelete }: PromptCardPr
       </div>
       
       <div className="text-xs text-slate-500 mb-2">
-        By {prompt.authorName || 'Anonymous'}
+        By {prompt.authorName || 'Anonymous'} · {prompt.category === 'research' ? '投研' : '产品'}
       </div>
 
       {prompt.description && (

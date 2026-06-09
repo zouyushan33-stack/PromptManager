@@ -1,11 +1,11 @@
 import { X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { Prompt } from '../types';
+import { Prompt, PromptCategory, PromptInput } from '../types';
 
 interface PromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (prompt: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'authorName'>) => Promise<boolean | void>;
+  onSave: (prompt: PromptInput) => Promise<boolean | void>;
   editingPrompt: Prompt | null;
 }
 
@@ -14,6 +14,7 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [tagsStr, setTagsStr] = useState('');
+  const [category, setCategory] = useState<PromptCategory>('product');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,11 +24,13 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
       setDescription(editingPrompt.description || '');
       setContent(editingPrompt.content);
       setTagsStr(editingPrompt.tags.join(', '));
+      setCategory(editingPrompt.category || 'product');
     } else {
       setTitle('');
       setDescription('');
       setContent('');
       setTagsStr('');
+      setCategory('product');
     }
     setError(null);
     setSaving(false);
@@ -53,6 +56,7 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
         description: description.trim(),
         content: content.trim(),
         tags,
+        category,
       });
 
       if (saved !== false) {
@@ -119,6 +123,21 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
               />
             </div>
             
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium text-slate-700 mb-1">
+                Category
+              </label>
+              <select
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value as PromptCategory)}
+                className="w-full px-4 py-2 text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              >
+                <option value="product">产品</option>
+                <option value="research">投研</option>
+              </select>
+            </div>
+
             <div>
               <label htmlFor="tags" className="block text-sm font-medium text-slate-700 mb-1">
                 Tags (comma separated)
