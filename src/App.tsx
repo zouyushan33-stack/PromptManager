@@ -16,7 +16,7 @@ import { supabase } from './lib/supabase';
 
 const categories: Array<{ id: PromptCategory; label: string; helper: string }> = [
   { id: 'research', label: '投研', helper: '行业研究、公司分析、投后跟踪' },
-    { id: 'product', label: '产品', helper: '基金产品同业研究、周报撰写、会议纪要' },
+  { id: 'product', label: '产品', helper: '基金产品同业研究、周报撰写、会议纪要' },
 ];
 
 const normalizeOrder = (items: Prompt[], category: PromptCategory) => {
@@ -83,7 +83,7 @@ export default function App() {
           groups[category.id] = filteredPrompts.filter((prompt) => prompt.category === category.id);
           return groups;
         },
-        { product: [], research: [] }
+        { research: [], product: [] }
       ),
     [filteredPrompts]
   );

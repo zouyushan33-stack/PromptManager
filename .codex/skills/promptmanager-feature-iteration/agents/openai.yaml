@@ -1,0 +1,4 @@
+interface:
+  display_name: "PromptManager Feature Iteration"
+  short_description: "Demo-first PromptManager feature workflow"
+  default_prompt: "Use $promptmanager-feature-iteration for this PromptManager project change."
