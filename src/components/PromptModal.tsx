@@ -14,7 +14,7 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [tagsStr, setTagsStr] = useState('');
-  const [category, setCategory] = useState<PromptCategory>('product');
+  const [category, setCategory] = useState<PromptCategory>('research');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,13 +24,13 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
       setDescription(editingPrompt.description || '');
       setContent(editingPrompt.content);
       setTagsStr(editingPrompt.tags.join(', '));
-      setCategory(editingPrompt.category || 'product');
+      setCategory(editingPrompt.category || 'research');
     } else {
       setTitle('');
       setDescription('');
       setContent('');
       setTagsStr('');
-      setCategory('product');
+      setCategory('research');
     }
     setError(null);
     setSaving(false);
@@ -133,8 +133,8 @@ export function PromptModal({ isOpen, onClose, onSave, editingPrompt }: PromptMo
                 onChange={(e) => setCategory(e.target.value as PromptCategory)}
                 className="w-full px-4 py-2 text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               >
-                <option value="product">产品</option>
                 <option value="research">投研</option>
+                <option value="product">产品</option>
               </select>
             </div>
 

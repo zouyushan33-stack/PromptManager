@@ -40,7 +40,7 @@ const formatPrompt = (item: PromptRow): Prompt => ({
   description: item.description || '',
   content: item.content,
   tags: item.tags || [],
-  category: item.category || 'product',
+  category: item.category || 'research',
   sortOrder: item.sort_order ?? 0,
   deletedAt: toTime(item.deleted_at),
   autoDeleteAt: toTime(item.auto_delete_at),
