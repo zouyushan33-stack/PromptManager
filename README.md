@@ -1,61 +1,46 @@
 # PromptManager
 
-A shared prompt manager built with React, Vite, and Supabase.
+一个基于 React + Vite + Supabase 的共享 Prompt 管理系统。
 
-## Run Locally
+## 你要知道的事
 
-**Prerequisites:** Node.js
+- 这是一个“提示词/Prompt 管理”网页
+- 本地开发：`npm run dev`
+- 本地检查：`npm run check`
+- 提交并发布：`git push origin main`
 
-1. Install dependencies:
-
-   ```powershell
-   npm install
-   ```
-
-2. Create `.env.local` with your Supabase frontend credentials:
-
-   ```powershell
-   Copy-Item .env.example .env.local
-   ```
-
-   Then fill in:
-
-   ```text
-   VITE_SUPABASE_URL
-   VITE_SUPABASE_ANON_KEY
-   ```
-
-3. Start the local development server:
-
-   ```powershell
-   npm run dev
-   ```
-
-4. Open:
-
-   ```text
-   http://localhost:3000
-   ```
-
-## Check Before Deploy
-
-Run the complete local check before committing:
+## 最常用命令
 
 ```powershell
+npm install
+npm run dev
 npm run check
+git add .
+git commit -m "更新说明"
+git push origin main
 ```
 
-This runs TypeScript validation and a production build.
+## 关键文件
 
-## Debug And Deploy Workflow
+- [src/App.tsx](src/App.tsx)：主页面
+- [src/hooks/usePrompts.ts](src/hooks/usePrompts.ts)：数据与业务逻辑
+- [src/components/PromptModal.tsx](src/components/PromptModal.tsx)：新增/编辑 Prompt 弹窗
+- [.github/workflows/deploy.yml](.github/workflows/deploy.yml)：自动部署配置
 
-Use [DEBUG_WORKFLOW.md](./DEBUG_WORKFLOW.md) for the standard local-debug, GitHub, hosting, and Supabase workflow.
+## 环境变量
 
-## Deployment
+在 `.env.local` 中配置：
 
-Use [DEPLOYMENT.md](./DEPLOYMENT.md) for the Tencent CloudBase deployment plan, or [CLOUDBASE_DEPLOYMENT_GUIDE.zh-CN.md](./CLOUDBASE_DEPLOYMENT_GUIDE.zh-CN.md) for the Chinese step-by-step guide. The app is deployed as a static Vite build from GitHub Actions to CloudBase static website hosting at `/`.
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+```
 
-GitHub Actions requires these repository Secrets:
+## 部署说明
+
+推送到 `main` 后，GitHub Actions 会自动部署。
+
+需要在 GitHub 仓库 Secrets 中配置：
 
 ```text
 TCB_SECRET_ID
@@ -65,13 +50,9 @@ VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
 ```
 
-The Supabase values are injected during `npm run build` because Vite reads `import.meta.env.VITE_*` at build time.
+## 其他文档
 
-For manual hosting setup, configure these frontend environment variables on the active host:
-
-```text
-VITE_SUPABASE_URL
-VITE_SUPABASE_ANON_KEY
-```
-
-Do not add a Supabase `service_role` key to frontend code or frontend hosting environments.
+- [DEBUG_WORKFLOW.md](DEBUG_WORKFLOW.md)：开发和提交流程
+- [DEPLOYMENT.md](DEPLOYMENT.md)：部署和常见问题
+- [CLOUDBASE_DEPLOYMENT_GUIDE.zh-CN.md](CLOUDBASE_DEPLOYMENT_GUIDE.zh-CN.md)：CloudBase 中文部署步骤
+- [REUSABLE_TEMPLATE_GUIDE.md](REUSABLE_TEMPLATE_GUIDE.md)：后续复用到其他项目时的模板说明
